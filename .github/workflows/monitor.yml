@@ -1,0 +1,41 @@
+
+name: JECT Article Alerts Daily
+
+on:
+  schedule:
+    - cron: "23 16 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check-articles:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Check for new JECT articles
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.JECT_WEBHOOK_URL }}
+        run: python monitor.py
+
+      - name: Save seen articles
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -f seen_articles.json ]; then
+            git add seen_articles.json
+            git diff --cached --quiet || git commit -m "Update seen JECT articles"
+            git push
+          fi
